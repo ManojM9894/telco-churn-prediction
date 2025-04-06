@@ -1,0 +1,16 @@
+# Ignore macOS system files
+.DS_Store
+
+# Ignore notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore compiled Python files
+__pycache__/
+*.pyc
+
+# Optional: Ignore datasets (if you don't want to push large files)
+data/*.csv
+
+# Ignore model checkpoints (unless you need them public)
+models/*.pkl
+
