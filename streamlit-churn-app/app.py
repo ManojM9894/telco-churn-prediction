@@ -23,12 +23,12 @@ encoder_path = "model/encoders.pkl"
 
 if not os.path.exists(model_path):
     os.makedirs("model", exist_ok=True)
-    model_url = "https://drive.google.com/uc?id=1HMXlOnLtbzdbjhDZMrDDvh5Ai9ok4NqH"
+    model_url = "https://drive.google.com/uc?id=1HMXlOnLtbzdbjhDZMrDDvh5Ai9ok4NqH"    
     gdown.download(model_url, model_path, quiet=False)
 
 if not os.path.exists(encoder_path):
     # If you have the encoder.pkl file hosted too, update this ID
-    encoder_url = "https://drive.google.com/uc?id=1HMXlOnLtbzdbjhDZMrDDvh5Ai9ok4NqH"
+    encoder_url = "https://drive.google.com/uc?id=1cyvzDSL9mMyNca-ZaZQQVeSq3h0DUXld"    
     gdown.download(encoder_url, encoder_path, quiet=False)
 
 # -------------------------------------------------------------------------- #
