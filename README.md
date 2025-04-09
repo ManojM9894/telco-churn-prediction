@@ -6,13 +6,13 @@
 ![Last Commit](https://img.shields.io/github/last-commit/ManojM9894/telco-churn-prediction)
 ![Repo Size](https://img.shields.io/github/repo-size/ManojM9894/telco-churn-prediction)
 
-This project uses real-world telecom customer data to build a predictive model that identifies which customers are likely to churn. It's a complete end-to-end data science project from preprocessing to deployment-ready modeling.
+This project uses real-world telecom customer data to build a machine learning pipeline that predicts which customers are likely to churn. It is a complete end-to-end data science workflow—from data preprocessing and modeling to deployment-ready exports and interactive dashboards.
 
 ---
 
 ## Dataset Description
 
-This project uses the **Telco Customer Churn dataset**, which includes customer demographics, account information, and service usage.
+The **Telco Customer Churn** dataset includes demographics, account information, and service usage patterns.
 
 | Column Name       | Description                                 |
 |-------------------|---------------------------------------------|
@@ -26,16 +26,16 @@ This project uses the **Telco Customer Churn dataset**, which includes customer 
 | TotalCharges      | Total bill over customer lifetime           |
 | Churn             | Yes or No – target variable                 |
 
-The dataset is stored locally at: data/telco_churn.csv
+The dataset is stored locally at: `data/telco_churn.csv`
 
 ---
 
 ## Project Structure
 
-- `Techno_Churn_Final_Upload.ipynb` — Full notebook with preprocessing, SMOTE, hyperparameter tuning, model evaluation, and predictions
-- `customer_churn_model.pkl` — Saved best model (Voting Classifier)
-- `encoders.pkl` — Saved label encoders for future predictions
-- `README.md` — You’re reading it :)
+- `Techno_Churn_Final_Upload.ipynb` – Full pipeline with preprocessing, SMOTE, model tuning, and evaluation
+- `customer_churn_model.pkl` – Saved Voting Classifier model
+- `encoders.pkl` – Label encoders for deployment
+- `README.md` – You’re reading it 
 
 ---
 
@@ -43,28 +43,26 @@ The dataset is stored locally at: data/telco_churn.csv
 
 - Python, Pandas, NumPy
 - Matplotlib, Seaborn
-- Scikit-learn
-- XGBoost
-- imbalanced-learn (SMOTE, RandomUnderSampler)
-- Pickle (for model saving)
+- Scikit-learn, XGBoost
+- imbalanced-learn (SMOTE, RUS)
+- Pickle (model persistence)
 
 ---
 
 ## Key Features
 
-- Handles **class imbalance** using both **SMOTE** and **RandomUnderSampler**
-- Trains multiple models: **Decision Tree, Random Forest, XGBoost**
-- Performs **hyperparameter tuning** using `GridSearchCV` + `StratifiedKFold`
-- Adds a **Voting Classifier ensemble** to combine strengths of RF and XGB
-- Evaluates models using:
+- Class imbalance handled using **SMOTE** and **RandomUnderSampler**
+- Models trained: **Decision Tree**, **Random Forest**, **XGBoost**
+- Ensemble built using a **Voting Classifier**
+- Hyperparameter tuning via `GridSearchCV` + `StratifiedKFold`
+- Evaluation metrics:
   - Accuracy
-  - Precision
-  - Recall
+  - Precision / Recall
   - F1-Score
   - ROC-AUC
-- Includes **feature importance plots**
-- Saves models + encoders for deployment
-- Ready for **Streamlit web app** integration
+- Feature importance visualized and exported
+- Dashboard-ready outputs (BigQuery + Looker Studio)
+- Prepared for **Streamlit** deployment
 
 ---
 
@@ -74,24 +72,63 @@ The dataset is stored locally at: data/telco_churn.csv
 |------------------|----------|-----------|--------|----------|---------|
 | Voting Classifier| ~80%     | *XX%*     | *XX%*  | *XX%*    | *XX%*   |
 
-_(Exact scores are shown in the notebook’s final comparison section)_
+*Exact values available in the final notebook section.*
 
 ---
 
+## Dashboard & Risk Insights (Looker Studio)
+
+This project includes a **Looker Studio dashboard** powered by **BigQuery + model predictions**, offering real-time churn visualization and business-ready reporting.
+
+### Dashboard Pages:
+
+- **Page 1: Churn Overview**
+  - Churn by contract type, tenure, and monthly charges
+- **Page 2: ML Predictions**
+  - Total customers evaluated
+  - Churn risk breakdown
+  - Tenure vs churn probability
+- **Page 3: Churn Drivers & At-Risk Customers**
+  - Feature importance (Random Forest)
+  - Segment heatmap (InternetService × PaymentMethod)
+  - Top 50 risky customers with `customerID`
+
+---
+
+### Live Dashboard
+
+- **View Interactive Dashboard**:  
+  [Click here to open the Telco Churn Dashboard](https://lookerstudio.google.com/reporting/3769f0f4-c502-4488-a3a8-8a47f9d3d8a8)
+
+- **Download Dashboard PDF**:  
+  [Telco Churn Dashboard Report (PDF)](assets/Telco_Churn_Dashboard_Report.pdf)
+
+---
+
+## Outputs for Looker Studio
+
+These files are exported from the ML pipeline and used in Looker Studio:
+
+- [`feature_importance.csv`](data_outputs/feature_importance.csv) – Feature importance (Random Forest)
+- [`top_50_risky_customers.csv`](data_outputs/top_50_risky_customers.csv) – Top 50 at-risk customers with `customerID`
+
+---
+
+
 ## Business Impact
 
-A churn prediction model like this allows telecom companies to:
-- Proactively retain at-risk customers
-- Customize offers for likely churners
-- Reduce revenue loss
+- Identify customers most likely to churn
+- Enable proactive retention strategy
+- Segment customers by risk and behavior
+- Improve customer lifetime value (CLV) and reduce revenue loss
 
 ---
 
 ## Future Enhancements
 
-- Add Streamlit interface for real-time predictions
-- Integrate SHAP for explainable AI
-- Deploy via Flask or FastAPI
+- Build Streamlit UI for real-time prediction
+- Integrate SHAP for explainable ML
+- API deployment via Flask/FastAPI
 
 ---
 
