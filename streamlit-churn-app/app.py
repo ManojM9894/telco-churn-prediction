@@ -1,6 +1,6 @@
 import os
 import zipfile
-import pickle
+import joblib
 import streamlit as st
 import pandas as pd
 import shap
@@ -21,17 +21,13 @@ if not os.path.exists(model_path) or not os.path.exists(encoder_path):
     with zipfile.ZipFile(zip_path, "r") as zip_ref:
         zip_ref.extractall(model_dir)
 
-# ----------- Load model & encoders ---------------- #
+# ----------- Load model & encoders using joblib ---------------- #
 
 @st.cache_resource
 def load_artifacts():
-    with open(model_path, "rb") as f:
-        model_data = pickle.load(f)
-    with open(encoder_path, "rb") as f:
-        encoders = pickle.load(f)
+    model_data = joblib.load(model_path)
+    encoders = joblib.load(encoder_path)
     return model_data["model"], model_data["features_names"], encoders
-
-model, feature_names, encoders = load_artifacts()
 
 # ----------- Streamlit UI ---------------- #
 
@@ -60,7 +56,6 @@ if uploaded_file:
 
     st.download_button("📥 Download Predictions", input_df.to_csv(index=False), "churn_predictions.csv", "text/csv")
 
-    # SHAP Explainability
     st.write("### 🔍 SHAP Explainability")
     explainer = shap.Explainer(model, input_df[feature_names])
     shap_values = explainer(input_df[feature_names])
