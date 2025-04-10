@@ -1,34 +1,13 @@
 import os
-import zipfile
 import joblib
 import streamlit as st
 import pandas as pd
-import shap
-import matplotlib.pyplot as plt
-import seaborn as sns
-import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Telco Churn Predictor", layout="wide")
 
-# ----------- File Setup & Debug ----------- #
+model_path = "customer_churn_model.pkl"
+encoder_path = "encoders.pkl"
 
-zip_path = "model_bundle.zip"
-model_dir = "model"
-model_path = os.path.join(model_dir, "customer_churn_model.pkl")
-encoder_path = os.path.join(model_dir, "encoders.pkl")
-
-# Show current directory files (debug aid)
-st.write("🗂️ Files in current directory:", os.listdir())
-
-# Unzip model if not already extracted
-if not os.path.exists(model_path) or not os.path.exists(encoder_path):
-    os.makedirs(model_dir, exist_ok=True)
-    with zipfile.ZipFile(zip_path, "r") as zip_ref:
-        zip_ref.extractall(model_dir)
-
-# ----------- Load model and encoders ----------- #
-
-@st.cache_resource
 def load_artifacts():
     model_data = joblib.load(model_path)
     encoders = joblib.load(encoder_path)
@@ -36,60 +15,68 @@ def load_artifacts():
 
 model, feature_names, encoders = load_artifacts()
 
-# ----------- Streamlit UI ----------- #
+st.title("📞 Telco Customer Churn Predictor")
 
-st.title("📊 Telco Customer Churn Predictor")
+with st.form("prediction_form"):
+    gender = st.selectbox("Gender", ["Female", "Male"])
+    senior = st.selectbox("Senior Citizen", [0, 1])
+    partner = st.selectbox("Partner", ["Yes", "No"])
+    dependents = st.selectbox("Dependents", ["Yes", "No"])
+    tenure = st.slider("Tenure (months)", 0, 72, 12)
+    phone = st.selectbox("Phone Service", ["Yes", "No"])
+    multi = st.selectbox("Multiple Lines", ["Yes", "No", "No phone service"])
+    internet = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
+    online_sec = st.selectbox("Online Security", ["Yes", "No", "No internet service"])
+    online_bkp = st.selectbox("Online Backup", ["Yes", "No", "No internet service"])
+    device_protect = st.selectbox("Device Protection", ["Yes", "No", "No internet service"])
+    tech_support = st.selectbox("Tech Support", ["Yes", "No", "No internet service"])
+    stream_tv = st.selectbox("Streaming TV", ["Yes", "No", "No internet service"])
+    stream_movies = st.selectbox("Streaming Movies", ["Yes", "No", "No internet service"])
+    contract = st.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
+    paperless = st.selectbox("Paperless Billing", ["Yes", "No"])
+    payment = st.selectbox("Payment Method", [
+        "Electronic check", "Mailed check",
+        "Bank transfer (automatic)", "Credit card (automatic)"
+    ])
+    monthly_charge = st.number_input("Monthly Charges", 0.0, 200.0, 70.0)
+    total_charge = st.number_input("Total Charges", 0.0, 10000.0, 1500.0)
 
-uploaded_file = st.file_uploader("📂 Upload a CSV file with customer data", type=["csv"])
+    submit = st.form_submit_button("Predict")
 
-if uploaded_file:
-    input_df = pd.read_csv(uploaded_file)
+if submit:
+    input_dict = {
+        "gender": gender,
+        "SeniorCitizen": senior,
+        "Partner": partner,
+        "Dependents": dependents,
+        "tenure": tenure,
+        "PhoneService": phone,
+        "MultipleLines": multi,
+        "InternetService": internet,
+        "OnlineSecurity": online_sec,
+        "OnlineBackup": online_bkp,
+        "DeviceProtection": device_protect,
+        "TechSupport": tech_support,
+        "StreamingTV": stream_tv,
+        "StreamingMovies": stream_movies,
+        "Contract": contract,
+        "PaperlessBilling": paperless,
+        "PaymentMethod": payment,
+        "MonthlyCharges": monthly_charge,
+        "TotalCharges": total_charge
+    }
 
-    for column, encoder in encoders.items():
-        if column in input_df.columns:
-            input_df[column] = encoder.transform(input_df[column])
+    input_df = pd.DataFrame([input_dict])
+
+    for col, encoder in encoders.items():
+        input_df[col] = encoder.transform(input_df[col])
 
     input_df = input_df[feature_names]
 
-    # Predictions
-    preds = model.predict(input_df)
-    probs = model.predict_proba(input_df)[:, 1]
+    prediction = model.predict(input_df)[0]
+    probability = model.predict_proba(input_df)[0][1]
 
-    input_df["Churn_Prediction"] = preds
-    input_df["Churn_Probability"] = probs.round(2)
-
-    # KPI metric
-    st.metric("✅ Total Predictions", len(input_df))
-
-    # Churn distribution
-    st.write("### 📈 Churn Distribution")
-    fig_churn, ax = plt.subplots()
-    sns.countplot(data=input_df, x="Churn_Prediction", palette="viridis")
-    ax.set_xticklabels(['Not Churned', 'Churned'])
-    st.pyplot(fig_churn)
-
-    # Prediction results table
-    st.write("### 🧠 Prediction Results")
-    st.dataframe(input_df)
-
-    # Download button
-    st.download_button("📥 Download Predictions", input_df.to_csv(index=False), "churn_predictions.csv", "text/csv")
-
-    # SHAP Explainability
-    st.write("### 🔍 SHAP Explainability")
-    explainer = shap.Explainer(model, input_df[feature_names])
-    shap_values = explainer(input_df[feature_names])
-
-    st.write("#### 📊 SHAP Summary Plot")
-    fig_summary, ax = plt.subplots(figsize=(10, 5))
-    shap.summary_plot(shap_values, input_df[feature_names], plot_type="bar", show=False)
-    st.pyplot(fig_summary)
-
-    st.write("#### 🔬 SHAP Force Plot for Selected Prediction")
-    selected_row = st.number_input("Select row to explain", min_value=0, max_value=len(input_df)-1, value=0)
-    shap_html = shap.plots.force(shap_values[selected_row], matplotlib=False)
-    components.html(shap_html, height=300)
-
-else:
-    st.info("👆 Upload a customer CSV file to begin prediction.")
+    st.subheader("Prediction Result:")
+    st.success("Churn" if prediction == 1 else "No Churn")
+    st.metric("Churn Probability", f"{probability * 100:.2f} %")
 
