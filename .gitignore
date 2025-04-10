@@ -14,3 +14,5 @@ data/*.csv
 # Ignore model checkpoints (unless you need them public)
 models/*.pkl
 
+customer_churn_model.pkl
+encoders.pkl
