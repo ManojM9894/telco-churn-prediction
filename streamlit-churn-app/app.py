@@ -1,8 +1,8 @@
 import os
 import gdown
+import joblib
 import streamlit as st
 import pandas as pd
-import pickle
 import shap
 import matplotlib.pyplot as plt
 import streamlit.components.v1 as components
@@ -23,11 +23,11 @@ encoder_path = "model/encoders.pkl"
 
 if not os.path.exists(model_path):
     os.makedirs("model", exist_ok=True)
-    model_url = "https://drive.google.com/uc?id=1HMXlOnLtbzdbjhDZMrDDvh5Ai9ok4NqH&confirm=t"
+    model_url = "https://drive.google.com/uc?id=1HMXlOnLtbzdbjhDZMrDDvh5Ai9ok4NqH"
     gdown.download(model_url, model_path, quiet=False)
 
 if not os.path.exists(encoder_path):
-    encoder_url = "https://drive.google.com/uc?id=1cyvzDSL9mMyNca-ZaZQQVeSq3h0DUXld&confirm=t"
+    encoder_url = "https://drive.google.com/uc?id=1cyvzDSL9mMyNca-ZaZQQVeSq3h0DUXld"
     gdown.download(encoder_url, encoder_path, quiet=False)
 
 # -------------------------------------------------------------------------- #
@@ -35,10 +35,8 @@ if not os.path.exists(encoder_path):
 # Load model & encoders
 @st.cache_resource
 def load_artifacts():
-    with open(model_path, "rb") as f:
-        model_data = pickle.load(f)
-    with open(encoder_path, "rb") as f:
-        encoders = pickle.load(f)
+    model_data = joblib.load(model_path)
+    encoders = joblib.load(encoder_path)
     return model_data["model"], model_data["features_names"], encoders
 
 model, feature_names, encoders = load_artifacts()
