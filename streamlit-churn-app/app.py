@@ -37,8 +37,8 @@ def safe_download(url, output_path, file_label):
         st.error(f"{file_label} is too small and may be corrupted.")
         with open(output_path, "r", encoding="utf-8", errors="ignore") as f:
         preview = f.read(500)
-    st.warning("Downloaded content preview:")
-    st.code(preview)
+        st.warning("Downloaded content preview:")
+        st.code(preview)
     st.stop()
 
 safe_download(model_url, model_path, "Model File")
