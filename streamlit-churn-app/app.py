@@ -1,6 +1,6 @@
 import os
 import gdown
-import joblib
+import pickle
 import streamlit as st
 import pandas as pd
 import shap
@@ -32,11 +32,13 @@ if not os.path.exists(encoder_path):
 
 # -------------------------------------------------------------------------- #
 
-# Load model & encoders
+# Load model & encoders using pickle
 @st.cache_resource
 def load_artifacts():
-    model_data = joblib.load(model_path)
-    encoders = joblib.load(encoder_path)
+    with open(model_path, "rb") as f:
+        model_data = pickle.load(f)
+    with open(encoder_path, "rb") as f:
+        encoders = pickle.load(f)
     return model_data["model"], model_data["features_names"], encoders
 
 model, feature_names, encoders = load_artifacts()
