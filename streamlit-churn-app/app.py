@@ -1,11 +1,28 @@
+import os
 import joblib
+import gdown
 import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Telco Churn Predictor", layout="wide")
 
-# ----------- Load model & encoders from files ----------- #
+# ----------- Google Drive File IDs ----------- #
+MODEL_FILE_ID = "1lKk6KmEEjwXQZjiRjTzpbFwbUcSGsdoj"
+ENCODER_FILE_ID = "1_lMgMqtQ_ppqU2EOzabHl1tkvNkMJ9P_"
+
+# ----------- Download from Google Drive if not present ----------- #
+def download_file(file_id, output_path):
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, output_path, quiet=False)
+
+# ----------- Load Model & Encoders ----------- #
 def load_artifacts():
+    if not os.path.exists("customer_churn_model.pkl"):
+        download_file(MODEL_FILE_ID, "customer_churn_model.pkl")
+
+    if not os.path.exists("encoders.pkl"):
+        download_file(ENCODER_FILE_ID, "encoders.pkl")
+
     model_data = joblib.load("customer_churn_model.pkl")
     encoders = joblib.load("encoders.pkl")
     return model_data["model"], model_data["features_names"], encoders
