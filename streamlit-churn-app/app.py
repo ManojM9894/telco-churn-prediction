@@ -5,11 +5,12 @@ import streamlit as st
 import pandas as pd
 import shap
 import matplotlib.pyplot as plt
+import seaborn as sns
 import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Telco Churn Predictor", layout="wide")
 
-# ----------- Unzip bundled model files ---------------- #
+# ----------- Unzip model files ---------------- #
 
 zip_path = "model_bundle.zip"
 model_dir = "model"
@@ -28,6 +29,8 @@ def load_artifacts():
     model_data = joblib.load(model_path)
     encoders = joblib.load(encoder_path)
     return model_data["model"], model_data["features_names"], encoders
+
+model, feature_names, encoders = load_artifacts()
 
 # ----------- Streamlit UI ---------------- #
 
@@ -51,11 +54,24 @@ if uploaded_file:
     input_df["Churn_Prediction"] = preds
     input_df["Churn_Probability"] = probs.round(2)
 
+    # ✅ Show Total Predictions
+    st.metric("✅ Total Predictions", len(input_df))
+
+    # ✅ Show Churn Distribution Bar Chart
+    st.write("### 📈 Churn Distribution")
+    fig_churn, ax = plt.subplots()
+    sns.countplot(data=input_df, x="Churn_Prediction", palette="viridis")
+    ax.set_xticklabels(['Not Churned', 'Churned'])
+    st.pyplot(fig_churn)
+
+    # Show the DataFrame
     st.write("### 🧠 Prediction Results")
     st.dataframe(input_df)
 
+    # Download button
     st.download_button("📥 Download Predictions", input_df.to_csv(index=False), "churn_predictions.csv", "text/csv")
 
+    # SHAP Explainability
     st.write("### 🔍 SHAP Explainability")
     explainer = shap.Explainer(model, input_df[feature_names])
     shap_values = explainer(input_df[feature_names])
