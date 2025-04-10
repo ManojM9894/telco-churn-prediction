@@ -1,7 +1,8 @@
 streamlit
 pandas
-matplotlib
-shap
+scikit-learn==1.6.1
+xgboost
 joblib
+matplotlib
 seaborn
-
+shap
