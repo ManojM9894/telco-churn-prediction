@@ -34,10 +34,12 @@ def safe_download(url, output_path, file_label):
         st.error(f"❌ {file_label} not downloaded.")
         st.stop()
     elif os.path.getsize(output_path) < 1000:
-        st.error(f"⚠️ {file_label} is too small and may be corrupted.")
+        st.error(f"{file_label} is too small and may be corrupted.")
         with open(output_path, "r", encoding="utf-8", errors="ignore") as f:
-            st.text(f.read()[:500])
-        st.stop()
+        preview = f.read(500)
+    st.warning("Downloaded content preview:")
+    st.code(preview)
+    st.stop()
 
 safe_download(model_url, model_path, "Model File")
 safe_download(encoder_url, encoder_path, "Encoders File")
