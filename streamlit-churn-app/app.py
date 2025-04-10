@@ -1,7 +1,6 @@
 import os
-import gdown
-import pickle
 import zipfile
+import pickle
 import streamlit as st
 import pandas as pd
 import shap
@@ -17,29 +16,19 @@ with st.sidebar:
     st.markdown("**Steps:**\n1. Upload a CSV\n2. See predictions\n3. Explore explanations")
     st.markdown("Need help? Use the sample CSV format from the repo.")
 
-# ----------- Download & unzip model bundle ---------------- #
+# ----------- Unzip bundled model files ---------------- #
 
-zip_url = "https://drive.google.com/uc?id=1R8SNlOzlwXv3E9NdydJy8vFMreHp-qCo"
-zip_path = "model/model_bundle.zip"
+zip_path = "model_bundle.zip"
 model_path = "model/customer_churn_model.pkl"
 encoder_path = "model/encoders.pkl"
 
 if not os.path.exists(model_path) or not os.path.exists(encoder_path):
     os.makedirs("model", exist_ok=True)
-    st.write("⬇️ Downloading zipped model bundle from Google Drive...")
-    gdown.download(zip_url, zip_path, quiet=False)
-
-    if not os.path.exists(zip_path) or os.path.getsize(zip_path) < 1000:
-        st.error("❌ ZIP file not downloaded or corrupted.")
-        st.stop()
-
-    st.write("📦 Extracting model files...")
     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
         zip_ref.extractall("model")
 
-# -------------------------------------------------------------------------- #
+# ----------- Load model & encoders ---------------- #
 
-# Load model & encoders
 @st.cache_resource
 def load_artifacts():
     with open(model_path, "rb") as f:
@@ -49,6 +38,8 @@ def load_artifacts():
     return model_data["model"], model_data["features_names"], encoders
 
 model, feature_names, encoders = load_artifacts()
+
+# ----------- Main UI ---------------- #
 
 st.title("Telco Customer Churn Predictor")
 
@@ -62,7 +53,6 @@ if uploaded_file:
         if column in input_df.columns:
             input_df[column] = encoder.transform(input_df[column])
 
-    # Ensure feature order
     input_df = input_df[feature_names]
 
     # Predict
@@ -82,15 +72,13 @@ if uploaded_file:
     explainer = shap.Explainer(model, input_df[feature_names])
     shap_values = explainer(input_df[feature_names])
 
-    # SHAP Summary Plot
     st.write("#### 📊 SHAP Summary Plot")
     fig_summary, ax = plt.subplots(figsize=(10, 5))
     shap.summary_plot(shap_values, input_df[feature_names], plot_type="bar", show=False)
     st.pyplot(fig_summary)
 
-    # SHAP Force Plot (selectable)
     st.write("#### 🔬 SHAP Force Plot for Selected Prediction")
-    selected_row = st.number_input("Select row to explain", min_value=0, max_value=len(input_df)-1, value=0, step=1)
+    selected_row = st.number_input("Select row to explain", min_value=0, max_value=len(input_df)-1, value=0)
     shap_html = shap.plots.force(shap_values[selected_row], matplotlib=False)
     components.html(shap_html, height=300)
 
