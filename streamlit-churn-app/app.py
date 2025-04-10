@@ -11,7 +11,7 @@ st.set_page_config(page_title="Telco Churn Predictor", layout="wide")
 
 # Sidebar
 with st.sidebar:
-    st.title("📊 Churn Predictor")
+    st.title("Churn Predictor")
     st.markdown("Upload your customer data to predict churn.")
     st.markdown("**Steps:**\n1. Upload a CSV\n2. See predictions\n3. Explore explanations")
     st.markdown("Need help? Use the sample CSV format from the repo.")
@@ -24,11 +24,17 @@ encoder_path = "model/encoders.pkl"
 if not os.path.exists(model_path):
     os.makedirs("model", exist_ok=True)
     model_url = "https://drive.google.com/uc?id=1lKk6KmEEjwXQZjiRjTzpbFwbUcSGsdoj"
-    gdown.download(model_url, model_path, quiet=False)
+    result = gdown.download(model_url, model_path, quiet=False)
+    if not result or not os.path.exists(model_path):
+        st.error("Failed to download the model. Please check the Google Drive link.")
+        st.stop()
 
 if not os.path.exists(encoder_path):
     encoder_url = "https://drive.google.com/uc?id=1_lMgMqtQ_ppqU2EOzabHl1tkvNkMJ9P_"
-    gdown.download(encoder_url, encoder_path, quiet=False)
+    result = gdown.download(encoder_url, encoder_path, quiet=False)
+    if not result or not os.path.exists(encoder_path):
+        st.error("Failed to download the encoders. Please check the Google Drive link.")
+        st.stop()
 
 # -------------------------------------------------------------------------- #
 
@@ -65,18 +71,18 @@ if uploaded_file:
     input_df["Churn_Prediction"] = preds
     input_df["Churn_Probability"] = probs.round(2)
 
-    st.write("### 🧠 Prediction Results")
+    st.write("### Prediction Results")
     st.dataframe(input_df)
 
-    st.download_button("📥 Download Predictions", input_df.to_csv(index=False), "churn_predictions.csv", "text/csv")
+    st.download_button("Download Predictions", input_df.to_csv(index=False), "churn_predictions.csv", "text/csv")
 
     # SHAP Explainability
-    st.write("### 🔍 SHAP Explainability")
+    st.write("### SHAP Explainability")
     explainer = shap.Explainer(model, input_df[feature_names])
     shap_values = explainer(input_df[feature_names])
 
     # SHAP Summary Plot
-    st.write("#### 📊 SHAP Summary Plot")
+    st.write("#### SHAP Summary Plot")
     fig_summary, ax = plt.subplots(figsize=(10, 5))
     shap.summary_plot(shap_values, input_df[feature_names], plot_type="bar", show=False)
     st.pyplot(fig_summary)
@@ -88,5 +94,5 @@ if uploaded_file:
     components.html(shap_html, height=300)
 
 else:
-    st.info("👆 Upload a customer CSV file to begin prediction.")
+    st.info("Upload a customer CSV file to begin prediction.")
 
