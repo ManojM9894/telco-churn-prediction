@@ -1,6 +1,7 @@
 import os
 import gdown
 import pickle
+import zipfile
 import streamlit as st
 import pandas as pd
 import shap
@@ -16,37 +17,29 @@ with st.sidebar:
     st.markdown("**Steps:**\n1. Upload a CSV\n2. See predictions\n3. Explore explanations")
     st.markdown("Need help? Use the sample CSV format from the repo.")
 
-# ----------- Download + Validate model and encoders from Google Drive ---------------- #
+# ----------- Download & unzip model bundle ---------------- #
 
+zip_url = "https://drive.google.com/uc?id=1R8SNlOzlwXv3E9NdydJy8vFMreHp-qCo"
+zip_path = "model/model_bundle.zip"
 model_path = "model/customer_churn_model.pkl"
 encoder_path = "model/encoders.pkl"
 
-model_url = "https://drive.google.com/uc?id=1lKk6KmEEjwXQZjiRjTzpbFwbUcSGsdoj"
-encoder_url = "https://drive.google.com/uc?id=1_lMgMqtQ_ppqU2EOzabHl1tkvNkMJ9P_"
+if not os.path.exists(model_path) or not os.path.exists(encoder_path):
+    os.makedirs("model", exist_ok=True)
+    st.write("⬇️ Downloading zipped model bundle from Google Drive...")
+    gdown.download(zip_url, zip_path, quiet=False)
 
-def safe_download(url, output_path, file_label):
-    if not os.path.exists(output_path):
-        os.makedirs("model", exist_ok=True)
-        st.write(f"⬇️ Downloading {file_label} from Google Drive...")
-        gdown.download(url, output_path, quiet=False)
-
-    if not os.path.exists(output_path):
-        st.error(f"❌ {file_label} not downloaded.")
-        st.stop()
-    elif os.path.getsize(output_path) < 1000:
-        st.error(f"⚠️ {file_label} is too small and may be corrupted.")
-        with open(output_path, "r", encoding="utf-8", errors="ignore") as f:
-            preview = f.read(500)
-            st.warning("Downloaded content preview:")
-            st.code(preview)
+    if not os.path.exists(zip_path) or os.path.getsize(zip_path) < 1000:
+        st.error("❌ ZIP file not downloaded or corrupted.")
         st.stop()
 
-safe_download(model_url, model_path, "Model File")
-safe_download(encoder_url, encoder_path, "Encoders File")
+    st.write("📦 Extracting model files...")
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall("model")
 
 # -------------------------------------------------------------------------- #
 
-# Load model & encoders using pickle
+# Load model & encoders
 @st.cache_resource
 def load_artifacts():
     with open(model_path, "rb") as f:
