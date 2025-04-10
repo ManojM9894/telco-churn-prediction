@@ -9,14 +9,7 @@ import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Telco Churn Predictor", layout="wide")
 
-# Sidebar
-with st.sidebar:
-    st.title("📊 Churn Predictor")
-    st.markdown("Upload your customer data to predict churn.")
-    st.markdown("**Steps:**\n1. Upload a CSV\n2. See predictions\n3. Explore explanations")
-    st.markdown("Need help? Use the sample CSV format from the repo.")
-
-# ----------- Unzip bundled model files ---------------- #
+# ----------- Unzip model files ---------------- #
 
 zip_path = "model_bundle.zip"
 model_path = "model/customer_churn_model.pkl"
@@ -24,7 +17,7 @@ encoder_path = "model/encoders.pkl"
 
 if not os.path.exists(model_path) or not os.path.exists(encoder_path):
     os.makedirs("model", exist_ok=True)
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+    with zipfile.ZipFile(zip_path, "r") as zip_ref:
         zip_ref.extractall("model")
 
 # ----------- Load model & encoders ---------------- #
@@ -39,23 +32,21 @@ def load_artifacts():
 
 model, feature_names, encoders = load_artifacts()
 
-# ----------- Main UI ---------------- #
+# ----------- UI Starts ---------------- #
 
-st.title("Telco Customer Churn Predictor")
+st.title("📊 Telco Customer Churn Predictor")
 
 uploaded_file = st.file_uploader("📂 Upload a CSV file with customer data", type=["csv"])
 
 if uploaded_file:
     input_df = pd.read_csv(uploaded_file)
 
-    # Encode categorical features
     for column, encoder in encoders.items():
         if column in input_df.columns:
             input_df[column] = encoder.transform(input_df[column])
 
     input_df = input_df[feature_names]
 
-    # Predict
     preds = model.predict(input_df)
     probs = model.predict_proba(input_df)[:, 1]
 
@@ -67,7 +58,6 @@ if uploaded_file:
 
     st.download_button("📥 Download Predictions", input_df.to_csv(index=False), "churn_predictions.csv", "text/csv")
 
-    # SHAP Explainability
     st.write("### 🔍 SHAP Explainability")
     explainer = shap.Explainer(model, input_df[feature_names])
     shap_values = explainer(input_df[feature_names])
