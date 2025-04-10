@@ -1,21 +1,27 @@
 import os
 import joblib
+import zipfile
 import streamlit as st
 import pandas as pd
 
 st.set_page_config(page_title="Telco Churn Predictor", layout="wide")
 
-model_path = "customer_churn_model.pkl"
-encoder_path = "encoders.pkl"
-
+# ----------- Load model & encoders from ZIP ----------- #
 def load_artifacts():
-    model_data = joblib.load(model_path)
-    encoders = joblib.load(encoder_path)
+    with zipfile.ZipFile("model_bundle.zip", "r") as zip_ref:
+        zip_ref.extractall("model")
+
+    model_data = joblib.load("model/customer_churn_model.pkl")
+    encoders = joblib.load("model/encoders.pkl")
+
     return model_data["model"], model_data["features_names"], encoders
 
 model, feature_names, encoders = load_artifacts()
 
+# ----------- Streamlit UI ----------- #
 st.title("📞 Telco Customer Churn Predictor")
+
+st.markdown("Enter customer information below to predict churn:")
 
 with st.form("prediction_form"):
     gender = st.selectbox("Gender", ["Female", "Male"])
