@@ -29,17 +29,17 @@ def safe_download(url, output_path, file_label):
         os.makedirs("model", exist_ok=True)
         st.write(f"⬇️ Downloading {file_label} from Google Drive...")
         gdown.download(url, output_path, quiet=False)
-    
+
     if not os.path.exists(output_path):
         st.error(f"❌ {file_label} not downloaded.")
         st.stop()
     elif os.path.getsize(output_path) < 1000:
         st.error(f"⚠️ {file_label} is too small and may be corrupted.")
         with open(output_path, "r", encoding="utf-8", errors="ignore") as f:
-        preview = f.read(500)
-        st.warning("Downloaded content preview:")
-        st.code(preview)
-    st.stop()
+            preview = f.read(500)
+            st.warning("Downloaded content preview:")
+            st.code(preview)
+        st.stop()
 
 safe_download(model_url, model_path, "Model File")
 safe_download(encoder_url, encoder_path, "Encoders File")
