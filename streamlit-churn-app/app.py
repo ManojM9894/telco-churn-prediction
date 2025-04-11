@@ -3,6 +3,8 @@ import joblib
 import gdown
 import pandas as pd
 import streamlit as st
+import shap
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Telco Customer Churn Predictor", layout="wide")
 
@@ -16,6 +18,7 @@ def download_file(file_id, output_path):
     gdown.download(url, output_path, quiet=False)
 
 # ----------- Load Model & Encoders ----------- #
+@st.cache_resource
 def load_artifacts():
     st.info("Downloading model files from Google Drive...")
     if not os.path.exists("customer_churn_model.pkl"):
@@ -33,14 +36,20 @@ def load_artifacts():
 
     return model_data["model"], model_data["features_names"], encoders
 
+# ----------- SHAP Explainer ----------- #
+@st.cache_resource
+def get_shap_explainer(model):
+    return shap.Explainer(model)
+
 model, feature_names, encoders = load_artifacts()
+explainer = get_shap_explainer(model)
 
 # ----------- Load Dataset ----------- #
 df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
 df['TotalCharges'] = pd.to_numeric(df['TotalCharges'].replace(" ", pd.NA), errors='coerce')
 df = df.dropna(subset=['TotalCharges'])
 
-st.title("📞 Telco Customer Churn Predictor")
+st.title("Telco Customer Churn Predictor")
 st.markdown("Enter a Customer ID to view their churn likelihood:")
 
 customer_id_input = st.text_input("Customer ID", placeholder="e.g., 1452-KIOVK")
@@ -69,4 +78,11 @@ if customer_id_input:
         st.info(f"**Gender: {gender}**")
         st.success("Likely to churn" if prediction == 1 else "Not likely to churn")
         st.metric("Churn Probability", f"{probability * 100:.2f} %")
+
+        # ----------- SHAP Waterfall Plot ----------- #
+        st.subheader("Why this prediction?")
+        shap_values = explainer(input_df)
+        fig, ax = plt.subplots(figsize=(10, 4))
+        shap.plots.waterfall(shap_values[0], max_display=12, show=False)
+        st.pyplot(fig)
 
