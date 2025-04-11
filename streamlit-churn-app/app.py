@@ -5,79 +5,80 @@ import joblib
 import shap
 import matplotlib.pyplot as plt
 
+# ----------------- Page Config -----------------
 st.set_page_config(page_title="Telco Churn App", layout="centered")
 
+# ----------------- Load Artifacts -----------------
 @st.cache_resource
 def load_artifacts():
-    try:
-        model_data = joblib.load("streamlit-churn-app/customer_churn_model.pkl")
-    except:
-        import gdown
-        gdown.download(
-            "https://drive.google.com/uc?id=1lKk6KmEEjwXQZjiRjTzpbFwbUcSGsdoj",
-            "streamlit-churn-app/customer_churn_model.pkl",
-            quiet=False,
-        )
-        model_data = joblib.load("streamlit-churn-app/customer_churn_model.pkl")
+    model_data = joblib.load("streamlit-churn-app/customer_churn_model.pkl")
     model = model_data["model"]
     feature_names = model_data["features_names"]
     encoders = joblib.load("streamlit-churn-app/encoders.pkl")
     return model, feature_names, encoders
 
-# Load data
-df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
-df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
-df = df.dropna(subset=["TotalCharges"])
-top_50 = pd.read_csv("streamlit-churn-app/top_50_risky_customers.csv")
-
-# UI
-st.title("📞 Telco Customer Churn Predictor")
-st.markdown("Select a Customer ID to see churn prediction and explanation.")
-top_50_ids = top_50["customerID"].tolist()
-selected_id = st.selectbox("Select Customer ID", top_50_ids)
-
-# Load model
 model, feature_names, encoders = load_artifacts()
 
-if selected_id:
-    customer = df[df["customerID"] == selected_id]
-    gender = customer["gender"].values[0]
-    st.subheader("📋 Prediction Details")
-    st.write(f"**Gender:** {gender}")
+# ----------------- Load Dataset -----------------
+df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
+top_50 = pd.read_csv("streamlit-churn-app/top_50_risky_customers.csv")
 
-    # Preprocess
-    X = customer[feature_names].copy()
-    for col in X.select_dtypes(include="object").columns:
-        le = encoders[col]
-        X[col] = le.transform(X[col])
+df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
+df.dropna(subset=["TotalCharges"], inplace=True)
 
-    # Prediction
-    prediction_proba = model.predict_proba(X)[0][1]
-    prediction_label = f"{prediction_proba * 100:.2f}% 🚨 Likely to Churn" if prediction_proba > 0.5 else f"{prediction_proba * 100:.2f}% ✅ Not Likely to Churn"
+# ----------------- UI Header -----------------
+st.title("📞 Telco Customer Churn Predictor")
+st.write("Select a Customer ID to see churn prediction and explanation.")
 
-    st.subheader("📊 Churn Probability")
-    st.metric(label="Churn Probability", value=f"{prediction_proba * 100:.2f}%")
-    st.success(prediction_label) if prediction_proba > 0.5 else st.info(prediction_label)
+# ----------------- Dropdown -----------------
+customer_id = st.selectbox(
+    "Select Customer ID",
+    options=top_50["customerID"].tolist(),
+    index=0
+)
 
-    # SHAP Explanation
-    st.subheader("💡 SHAP Explanation (Bar Chart)")
-    try:
-        base_model = model.estimators_[1][1]  # Use XGB model inside VotingClassifier
-        explainer = shap.TreeExplainer(base_model)
-        shap_values = explainer.shap_values(X)
+# ----------------- Prediction Logic -----------------
+if customer_id:
+    customer_row = df[df["customerID"] == customer_id]
 
-        shap_df = pd.DataFrame({
-            "Feature": X.columns,
-            "SHAP Value": shap_values[0]
-        }).sort_values(by="SHAP Value", key=abs, ascending=True)
+    if not customer_row.empty:
+        gender = customer_row["gender"].values[0]
+        st.markdown(f"### 📋 Prediction Details")
+        st.markdown(f"**Gender:** {gender}")
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        ax.barh(shap_df["Feature"], shap_df["SHAP Value"])
-        ax.set_xlabel("Impact on Prediction")
-        ax.set_title("Top Feature Contributions")
-        st.pyplot(fig)
+        X = customer_row[feature_names]
+        for col in X.select_dtypes(include="object").columns:
+            le = encoders.get(col)
+            if le:
+                X[col] = le.transform(X[col])
 
-    except Exception as e:
-        st.warning("SHAP explanation could not be generated:")
-        st.exception(e)
+        prediction_proba = model.predict_proba(X)[0][1]
+        prediction_label = f"{prediction_proba * 100:.2f}% {'🚨 Likely to Churn' if prediction_proba > 0.5 else '✅ Likely to Stay'}"
 
+        st.markdown(f"### 📊 Churn Probability")
+        st.metric("Churn Probability", f"{prediction_proba * 100:.2f}%")
+        if prediction_proba > 0.5:
+            st.success(prediction_label)
+        else:
+            st.info(prediction_label)
+
+        # ----------------- SHAP Explanation -----------------
+        st.markdown("### 💡 SHAP Explanation (Bar Chart)")
+        try:
+            base_model = dict(model.named_estimators_)["xgb"]
+            explainer = shap.TreeExplainer(base_model)
+            shap_values = explainer.shap_values(X)
+
+            shap_df = pd.DataFrame({
+                "Feature": X.columns,
+                "SHAP Value": shap_values[0]
+            }).sort_values(by="SHAP Value", key=abs, ascending=True)
+
+            fig, ax = plt.subplots(figsize=(8, 5))
+            ax.barh(shap_df["Feature"], shap_df["SHAP Value"])
+            ax.set_xlabel("Impact on Prediction")
+            ax.set_title("Top Feature Contributions")
+            st.pyplot(fig)
+
+        except Exception as e:
+            st.error(f"SHAP explanation could not be generated:\n\n{e}")
