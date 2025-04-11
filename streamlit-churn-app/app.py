@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 import os
 import gdown
 
+# ----------- MUST BE FIRST STREAMLIT COMMAND -----------
+st.set_page_config(page_title="Telco Churn App", layout="centered")
+
 # ----------- Helper: Load Model & Encoder -----------
 @st.cache_resource
 def load_artifacts():
@@ -42,7 +45,6 @@ def get_shap_explainer(_model, _background):
 explainer = get_shap_explainer(model, background)
 
 # ----------- Streamlit App UI -----------
-st.set_page_config(page_title="Telco Churn App", layout="centered")
 st.title("📞 Telco Customer Churn Predictor")
 st.markdown("Select a Customer ID to see churn prediction and explanation.")
 
