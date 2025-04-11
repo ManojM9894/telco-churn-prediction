@@ -33,11 +33,16 @@ top_50 = pd.read_csv("streamlit-churn-app/top_50_risky_customers.csv")
 df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
 df.dropna(subset=["TotalCharges"], inplace=True)
 
-background = df[feature_names].sample(n=50, random_state=42).copy()
+background_df = df[feature_names].sample(50, random_state=42).copy()
+for col in background_df.columns:
+    if col in encoders:
+        background_df[col] = encoders[col].transform(background_df[col])
+
+background = background_df.values  # Final fallback against SHAP error
 
 @st.cache_resource
-def get_shap_explainer(_model, _background):
-    return shap.Explainer(_model.predict, masker=_background)
+def get_shap_explainer(_model, _masker):
+    return shap.Explainer(_model.predict, masker=_masker)
 
 explainer = get_shap_explainer(model, background)
 
@@ -65,7 +70,7 @@ if not customer_row.empty:
     st.markdown(f"**{prediction_proba * 100:.2f}%**")
     st.success(prediction_label) if prediction_proba > 0.5 else st.info(prediction_label)
 
-    # ----------- SHAP Explanation -----------
+    # ----------- SHAP Explanation (Bar Chart) -----------
     st.subheader("💡 SHAP Explanation (Bar Chart)")
     shap_values = explainer(input_data.values)
 
