@@ -17,13 +17,20 @@ def download_file(file_id, output_path):
 
 # ----------- Load Model & Encoders ----------- #
 def load_artifacts():
+    st.info("Downloading model files from Google Drive...")
     if not os.path.exists("customer_churn_model.pkl"):
         download_file(MODEL_FILE_ID, "customer_churn_model.pkl")
     if not os.path.exists("encoders.pkl"):
         download_file(ENCODER_FILE_ID, "encoders.pkl")
 
+    st.info("Loading model...")
     model_data = joblib.load("customer_churn_model.pkl")
+    st.info("Model loaded.")
+
+    st.info("Loading encoders...")
     encoders = joblib.load("encoders.pkl")
+    st.info("Encoders loaded.")
+
     return model_data["model"], model_data["features_names"], encoders
 
 model, feature_names, encoders = load_artifacts()
@@ -33,7 +40,7 @@ df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
 df['TotalCharges'] = pd.to_numeric(df['TotalCharges'].replace(" ", pd.NA), errors='coerce')
 df = df.dropna(subset=['TotalCharges'])
 
-st.title("Telco Customer Churn Predictor")
+st.title("📞 Telco Customer Churn Predictor")
 st.markdown("Enter a Customer ID to view their churn likelihood:")
 
 customer_id_input = st.text_input("Customer ID", placeholder="e.g., 1452-KIOVK")
