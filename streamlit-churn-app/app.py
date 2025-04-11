@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import os
 import gdown
 
-# ----------- MUST BE FIRST STREAMLIT COMMAND -----------
 st.set_page_config(page_title="Telco Churn App", layout="centered")
 
 # ----------- Helper: Load Model & Encoder -----------
@@ -35,7 +34,7 @@ top_50 = pd.read_csv("streamlit-churn-app/top_50_risky_customers.csv")
 df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
 df.dropna(subset=["TotalCharges"], inplace=True)
 
-# ----------- SHAP Explainer Setup -----------
+# SHAP background data
 background = df[feature_names].sample(n=50, random_state=42)
 
 @st.cache_resource
@@ -48,8 +47,6 @@ explainer = get_shap_explainer(model, background)
 st.title("📞 Telco Customer Churn Predictor")
 st.markdown("Select a Customer ID to see churn prediction and explanation.")
 
-# Top 50 dropdown + manual input
-customer_ids = df["customerID"].tolist()
 default_id = top_50["customerID"].iloc[0]
 selected_id = st.selectbox("Select Customer ID", [default_id] + top_50["customerID"].tolist())
 
@@ -70,14 +67,15 @@ if not customer_row.empty:
     prediction_proba = model.predict_proba(input_data)[0][1]
     prediction_label = "🚨 Likely to Churn" if prediction_proba > 0.5 else "✅ Not Likely to Churn"
 
-    # Show prediction
     st.subheader("📊 Churn Probability")
     st.markdown(f"**{prediction_proba * 100:.2f}%**")
     st.success(prediction_label) if prediction_proba > 0.5 else st.info(prediction_label)
 
-    # SHAP Plot
-    st.subheader("💡 SHAP Explanation (Waterfall)")
+    # SHAP Bar Chart (Fallback to avoid errors)
+    st.subheader("💡 SHAP Explanation (Bar Chart)")
     shap_values = explainer(input_data)
-    fig = shap.plots.waterfall(shap_values[0], max_display=10, show=False)
+
+    fig, ax = plt.subplots()
+    shap.plots.bar(shap_values[0], max_display=10, show=False)
     st.pyplot(fig)
 
