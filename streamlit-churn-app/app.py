@@ -20,23 +20,15 @@ def download_file(file_id, output_path):
 # ----------- Load Model & Encoders ----------- #
 @st.cache_resource
 def load_artifacts():
-    st.info("Downloading model files from Google Drive...")
     if not os.path.exists("customer_churn_model.pkl"):
         download_file(MODEL_FILE_ID, "customer_churn_model.pkl")
     if not os.path.exists("encoders.pkl"):
         download_file(ENCODER_FILE_ID, "encoders.pkl")
 
-    st.info("Loading model...")
     model_data = joblib.load("customer_churn_model.pkl")
-    st.info("Model loaded.")
-
-    st.info("Loading encoders...")
     encoders = joblib.load("encoders.pkl")
-    st.info("Encoders loaded.")
-
     return model_data["model"], model_data["features_names"], encoders
 
-# ----------- SHAP Explainer ----------- #
 @st.cache_resource
 def get_shap_explainer(model):
     return shap.Explainer(model)
@@ -44,15 +36,23 @@ def get_shap_explainer(model):
 model, feature_names, encoders = load_artifacts()
 explainer = get_shap_explainer(model)
 
-# ----------- Load Dataset ----------- #
+# ----------- Load Datasets ----------- #
 df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
 df['TotalCharges'] = pd.to_numeric(df['TotalCharges'].replace(" ", pd.NA), errors='coerce')
 df = df.dropna(subset=['TotalCharges'])
 
-st.title("Telco Customer Churn Predictor")
-st.markdown("Enter a Customer ID to view their churn likelihood:")
+risky_df = pd.read_csv("streamlit-churn-app/top_50_risky_customers.csv")
+risky_ids = risky_df['customerID'].tolist()
 
-customer_id_input = st.text_input("Customer ID", placeholder="e.g., 1452-KIOVK")
+# ----------- Streamlit UI ----------- #
+st.title("📞 Telco Customer Churn Predictor")
+st.markdown("###Choose or Enter Customer ID")
+
+customer_id_input = st.selectbox("Select from Top 50 Risky Customers:", risky_ids)
+manual_id = st.text_input("...or enter a different Customer ID")
+
+if manual_id:
+    customer_id_input = manual_id
 
 if customer_id_input:
     customer_row = df[df['customerID'] == customer_id_input]
@@ -61,14 +61,10 @@ if customer_id_input:
         st.error("Customer ID not found in the dataset.")
     else:
         input_dict = customer_row.iloc[0][feature_names].to_dict()
-
-        # Encode categorical features
         for col, encoder in encoders.items():
             input_dict[col] = encoder.transform([input_dict[col]])[0]
 
         input_df = pd.DataFrame([input_dict])
-
-        # Predict
         prediction = model.predict(input_df)[0]
         probability = model.predict_proba(input_df)[0][1]
 
