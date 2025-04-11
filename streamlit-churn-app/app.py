@@ -36,9 +36,9 @@ def get_shap_explainer(_model, _data):
 
 # ---------------- LOAD DATA ---------------- #
 df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
-top_50 = pd.read_csv("streamlit-churn-app/top_50_risky_customers.csv")
 df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
 df.dropna(inplace=True)
+top_50 = pd.read_csv("streamlit-churn-app/top_50_risky_customers.csv")
 
 # ---------------- UI ---------------- #
 st.title("📞 Telco Customer Churn Predictor")
@@ -76,14 +76,19 @@ if selected_id:
     explainer = get_shap_explainer(model, input_data)
     shap_values = explainer(input_data)
 
+    # Ensure values are 1D
+    shap_values_1d = shap_values.values[0].flatten()
+
+    # Safely match features to values
     shap_df = pd.DataFrame({
         "Feature": feature_names,
-        "SHAP Value": shap_values.values[0]
+        "SHAP Value": shap_values_1d[:len(feature_names)]
     }).sort_values(by="SHAP Value", key=abs, ascending=False)
 
     fig, ax = plt.subplots()
     ax.barh(shap_df["Feature"], shap_df["SHAP Value"])
     ax.set_xlabel("SHAP Value")
+    ax.set_title("Top Feature Contributions")
     ax.invert_yaxis()
     st.pyplot(fig)
 
