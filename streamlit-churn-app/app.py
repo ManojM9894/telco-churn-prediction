@@ -30,8 +30,8 @@ model, feature_names, encoders = load_artifacts()
 
 # ----------- Load Dataset ----------- #
 df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
+df['TotalCharges'] = pd.to_numeric(df['TotalCharges'].replace(" ", pd.NA), errors='coerce')
 df = df.dropna(subset=['TotalCharges'])
-df['TotalCharges'] = pd.to_numeric(df['TotalCharges'])
 
 st.title("Telco Customer Churn Predictor")
 st.markdown("Enter a Customer ID to view their churn likelihood:")
@@ -58,7 +58,7 @@ if customer_id_input:
 
         st.subheader("Prediction Result")
         gender = customer_row.iloc[0]['gender']
-        st.info(f"**Customer ID: {customer_id_input}**  ")
+        st.info(f"**Customer ID: {customer_id_input}**")
         st.info(f"**Gender: {gender}**")
         st.success("Likely to churn" if prediction == 1 else "Not likely to churn")
         st.metric("Churn Probability", f"{probability * 100:.2f} %")
