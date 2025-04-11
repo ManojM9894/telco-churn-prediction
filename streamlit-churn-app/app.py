@@ -7,73 +7,83 @@ import os
 import gdown
 import matplotlib.pyplot as plt
 
-# -------------------------------
-# Fallback download for artifacts
-# -------------------------------
-def download_if_missing(path, gdrive_url):
-    if not os.path.exists(path):
-        file_id = gdrive_url.split("/d/")[1].split("/")[0]
-        gdown.download(f"https://drive.google.com/uc?id={file_id}", path, quiet=False)
+# ----------------- Helper: Download from GDrive if local missing ----------------- #
+def download_from_gdrive(file_id, dest_path):
+    url = f"https://drive.google.com/uc?id={file_id}"
+    gdown.download(url, dest_path, quiet=False)
 
+# ----------------- Cache: Load model and encoders ----------------- #
 @st.cache_resource
 def load_artifacts():
     model_path = "customer_churn_model.pkl"
     encoder_path = "encoders.pkl"
-    download_if_missing(model_path, "https://drive.google.com/file/d/1lKk6KmEEjwXQZjiRjTzpbFwbUcSGsdoj/view?usp=sharing")
-    download_if_missing(encoder_path, "https://drive.google.com/file/d/1_lMgMqtQ_ppqU2EOzabHl1tkvNkMJ9P_/view?usp=sharing")
-    model = joblib.load(model_path)["model"]
-    feature_names = joblib.load(model_path)["features_names"]
+
+    if not os.path.exists(model_path):
+        download_from_gdrive("1lKk6KmEEjwXQZjiRjTzpbFwbUcSGsdoj", model_path)
+
+    if not os.path.exists(encoder_path):
+        download_from_gdrive("1_lMgMqtQ_ppqU2EOzabHl1tkvNkMJ9P_", encoder_path)
+
+    model_data = joblib.load(model_path)
+    model = model_data["model"]
+    feature_names = model_data["features_names"]
     encoders = joblib.load(encoder_path)
     return model, feature_names, encoders
 
+# ----------------- Cache: SHAP Explainer ----------------- #
 @st.cache_resource
-def get_shap_explainer(_model):
-    return shap.Explainer(_model.predict_proba, feature_names=feature_names)
+def get_shap_explainer(_model, data):
+    return shap.Explainer(_model.predict_proba, data, feature_names=feature_names)
 
-# ----------- Load Artifacts ----------- #
+# ----------------- Load Data ----------------- #
 model, feature_names, encoders = load_artifacts()
-explainer = get_shap_explainer(model)
 
-# ----------- Load Dataset ----------- #
 df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
 top_50 = pd.read_csv("streamlit-churn-app/top_50_risky_customers.csv")
 
-# Handle invalid TotalCharges
+df = df.dropna(subset=["TotalCharges"])
 df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
 df = df.dropna(subset=["TotalCharges"])
 
-# ----------- UI ----------- #
+# ----------------- SHAP Explainer Setup ----------------- #
+explainer = get_shap_explainer(model, df[feature_names])
+
+# ----------------- Streamlit UI ----------------- #
 st.title("Telco Customer Churn Predictor")
 st.markdown("Select a Customer ID to see churn prediction and explanation.")
 
-# Dropdown: Top 50 risky customer IDs
-top_50_ids = top_50["customerID"].tolist()
-selected_id = st.selectbox("Select Customer ID", top_50_ids, key="top50dropdown")
+# Dropdown with top 50 risky customers
+default_id = top_50["customerID"].iloc[0]
+customer_id = st.selectbox("Select Customer ID", options=top_50["customerID"], index=0, placeholder="e.g., 4614-NUVZD")
 
-# Get customer details
-if selected_id:
-    customer = df[df["customerID"] == selected_id]
-    if not customer.empty:
-        customer = customer.drop(columns=["customerID", "Churn"])
-        gender = customer["gender"].values[0]
-        st.markdown(f"**Gender**: {gender}")
+if customer_id:
+    customer_row = df[df["customerID"] == customer_id]
 
-        # Encoding
-        encoded_input = customer.copy()
-        for col in encoders:
-            if col in encoded_input.columns:
-                encoded_input[col] = encoders[col].transform(encoded_input[col])
+    if not customer_row.empty:
+        st.markdown("### Prediction Details")
+        gender = customer_row["gender"].values[0]
+        st.markdown(f"**Gender:** {gender}")
 
-        input_data = encoded_input[feature_names]
+        input_data = customer_row[feature_names]
+
+        # Encode
+        for col, encoder in encoders.items():
+            if col in input_data:
+                input_data[col] = encoder.transform(input_data[col])
 
         # Predict
-        prob = model.predict_proba(input_data)[0][1]
-        churn_label = "Likely to Churn" if prob > 0.5 else "Unlikely to Churn"
-        st.metric(label="Churn Probability", value=f"{prob * 100:.2f}%", delta=churn_label)
+        prediction_proba = model.predict_proba(input_data)[0][1]
+        prediction_label = "Likely to Churn" if prediction_proba > 0.5 else "Likely to Stay"
+
+        st.markdown("### Churn Probability")
+        st.metric(label="", value=f"{prediction_proba * 100:.2f}%", delta=prediction_label)
 
         # SHAP Plot
-        st.subheader("SHAP Explanation (Waterfall)")
+        st.markdown("### SHAP Explanation (Waterfall)")
         shap_values = explainer(input_data)
-        fig = shap.plots.waterfall(shap_values[0], max_display=10, show=False)
+        fig, ax = plt.subplots()
+        shap.plots.waterfall(shap_values[0], max_display=10, show=False)
         st.pyplot(fig)
+    else:
+        st.error("Customer ID not found.")
 
