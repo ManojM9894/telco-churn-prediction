@@ -9,7 +9,7 @@ import gdown
 
 st.set_page_config(page_title="Telco Churn App", layout="centered")
 
-# ----------- Helper: Load Model & Encoder -----------
+# ----------- Load Model and Encoders -----------
 @st.cache_resource
 def load_artifacts():
     model_path = "customer_churn_model.pkl"
@@ -30,40 +30,34 @@ model, feature_names, encoders = load_artifacts()
 df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
 top_50 = pd.read_csv("streamlit-churn-app/top_50_risky_customers.csv")
 
-# Clean TotalCharges column
 df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
 df.dropna(subset=["TotalCharges"], inplace=True)
 
-# SHAP background data
-background = df[feature_names].sample(n=50, random_state=42)
+background = df[feature_names].sample(n=50, random_state=42).copy()
 
 @st.cache_resource
 def get_shap_explainer(_model, _background):
-    return shap.Explainer(_model.predict, _background)
+    return shap.Explainer(_model.predict, masker=_background)
 
 explainer = get_shap_explainer(model, background)
 
-# ----------- Streamlit App UI -----------
+# ----------- Streamlit UI -----------
 st.title("📞 Telco Customer Churn Predictor")
 st.markdown("Select a Customer ID to see churn prediction and explanation.")
 
 default_id = top_50["customerID"].iloc[0]
 selected_id = st.selectbox("Select Customer ID", [default_id] + top_50["customerID"].tolist())
 
-# Load customer row
 customer_row = df[df["customerID"] == selected_id]
 if not customer_row.empty:
     st.subheader("📋 Prediction Details")
-    gender = customer_row["gender"].values[0]
-    st.write(f"**Gender:** {gender}")
+    st.write(f"**Gender:** {customer_row['gender'].values[0]}")
 
-    # Preprocess
     input_data = customer_row[feature_names].copy()
     for col in input_data.columns:
         if col in encoders:
             input_data[col] = encoders[col].transform(input_data[col])
 
-    # Predict
     prediction_proba = model.predict_proba(input_data)[0][1]
     prediction_label = "🚨 Likely to Churn" if prediction_proba > 0.5 else "✅ Not Likely to Churn"
 
@@ -71,9 +65,9 @@ if not customer_row.empty:
     st.markdown(f"**{prediction_proba * 100:.2f}%**")
     st.success(prediction_label) if prediction_proba > 0.5 else st.info(prediction_label)
 
-    # SHAP Bar Chart (Fallback to avoid errors)
+    # ----------- SHAP Explanation -----------
     st.subheader("💡 SHAP Explanation (Bar Chart)")
-    shap_values = explainer(input_data)
+    shap_values = explainer(input_data.values)
 
     fig, ax = plt.subplots()
     shap.plots.bar(shap_values[0], max_display=10, show=False)
