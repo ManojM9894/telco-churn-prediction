@@ -29,7 +29,7 @@ def load_artifacts():
 model, feature_names, encoders = load_artifacts()
 
 # ----------- Load Dataset ----------- #
-df = pd.read_csv("telco_churn.csv")
+df = pd.read_csv("streamlit-churn-app/telco_churn.csv")
 df = df.dropna(subset=['TotalCharges'])
 df['TotalCharges'] = pd.to_numeric(df['TotalCharges'])
 
