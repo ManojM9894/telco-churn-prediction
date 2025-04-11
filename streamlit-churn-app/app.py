@@ -30,8 +30,8 @@ def load_artifacts():
     return model_data["model"], model_data["features_names"], encoders
 
 @st.cache_resource
-def get_shap_explainer(model):
-    return shap.Explainer(model)
+def get_shap_explainer(_model):
+    return shap.Explainer(_model)
 
 model, feature_names, encoders = load_artifacts()
 explainer = get_shap_explainer(model)
@@ -46,10 +46,10 @@ risky_ids = risky_df['customerID'].tolist()
 
 # ----------- Streamlit UI ----------- #
 st.title("📞 Telco Customer Churn Predictor")
-st.markdown("###Choose or Enter Customer ID")
+st.markdown("### Choose or Enter Customer ID")
 
-customer_id_input = st.selectbox("Select from Top 50 Risky Customers:", risky_ids)
-manual_id = st.text_input("...or enter a different Customer ID")
+customer_id_input = st.selectbox("️ Select from Top 50 Risky Customers:", risky_ids)
+manual_id = st.text_input("...or enter a different Customer ID", placeholder="e.g., 1452-KIOVK")
 
 if manual_id:
     customer_id_input = manual_id
