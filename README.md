@@ -6,6 +6,15 @@
 ![Last Commit](https://img.shields.io/github/last-commit/ManojM9894/telco-churn-prediction)
 ![Repo Size](https://img.shields.io/github/repo-size/ManojM9894/telco-churn-prediction)
 
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://telco-churn-prediction-2ukgrvfptmc9terlkegn8i.streamlit.app)
+
+---
+
+## Live App
+
+Try the churn prediction tool in your browser:  
+🔗 **[Click here to open the Streamlit App](https://telco-churn-prediction-2ukgrvfptmc9terlkegn8i.streamlit.app)**
+
 This project uses real-world telecom customer data to build a machine learning pipeline that predicts which customers are likely to churn. It is a complete end-to-end data science workflow—from data preprocessing and modeling to deployment-ready exports and interactive dashboards.
 
 ---
@@ -113,7 +122,6 @@ These files are exported from the ML pipeline and used in Looker Studio:
 - [`top_50_risky_customers.csv`](data_outputs/top_50_risky_customers.csv) – Top 50 at-risk customers with `customerID`
 
 ---
-
 
 ## Business Impact
 
